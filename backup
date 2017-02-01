@@ -1,17 +1,12 @@
 #!/bin/bash
 
-# required environment variables:
-#   BACKUP_FILE: path to file that needs to be backed up
-#   BACKUP_BUCKET: bucket url like gs://paperhive-backups
-#   BACKUP_PGP_KEY: path to public key, defaults to /pubkey.asc
-# mounted volumes:
-#   /scratch: scratch space
-
 set -eu
 
 BACKUP_PGP_KEY=${BACKUP_PGP_KEY:-/pubkey.asc}
-
-OUTPUT="/scratch/$(basename ${BACKUP_FILE}).$(date --iso-8601=minutes --utc).gpg"
+FILE_NAME="$(basename ${BACKUP_FILE})"
+FILE_BASE="${FILE_NAME%%.*}"
+FILE_EXT="${FILE_NAME#*.}"
+OUTPUT="/scratch/${FILE_BASE}.$(date --iso-8601=minutes --utc).${FILE_EXT}.gpg"
 
 mkdir -p /tmp/gnupg
 chmod 700 /tmp/gnupg
