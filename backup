@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# required environment variables:
+#   BACKUP_FILE: path to file that needs to be backed up
+#   BACKUP_BUCKET: bucket url like gs://paperhive-backups
+#   BACKUP_PGP_KEY: path to public key, defaults to /pubkey.asc
+# mounted volumes:
+#   /scratch: scratch space
+
+set -eu
+
+BACKUP_PGP_KEY=${BACKUP_PGP_KEY:-/pubkey.asc}
+
+OUTPUT="/scratch/$(basename ${BACKUP_FILE}).$(date --iso-8601=minutes --utc).gpg"
+
+mkdir -p /tmp/gnupg
+chmod 700 /tmp/gnupg
+gpg --homedir /tmp/gnupg --import ${BACKUP_PGP_KEY}
+KEY_ID=`gpg --homedir /tmp/gnupg --batch --with-colons /tmp/gnupg/pubring.gpg | head -n1 | cut -d: -f5`
+
+# encrypt
+gpg --homedir /tmp/gnupg --output ${OUTPUT} -z 0 --encrypt --trust-model always --recipient ${KEY_ID} ${BACKUP_FILE}
+
+# upload encrypted data
+gsutil cp ${OUTPUT} ${BACKUP_BUCKET}
+
+# clean up
+rm ${OUTPUT}
